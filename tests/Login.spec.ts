@@ -1,94 +1,100 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { BASE_URL } from '../config/environment';
+import { InventoryPage } from '../pages/InventoryPage';
+import { LoginPage } from '../pages/LoginPage';
+import { loginTestData } from './test-data/login.data';
 
-const BASE_URL = 'https://www.saucedemo.com/';
-const STANDARD_USERNAME = 'standard_user';
-const PASSWORD = 'secret_sauce';
+test.describe('SauceDemo login', () => {
+  let loginPage: LoginPage;
 
-test.describe('SauceDemo Login Page - Standard User', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    loginPage = new LoginPage(page);
+    await loginPage.goto();
   });
 
-  test('verify login page is displayed', async ({ page }) => {
-    await expect(await page.getByPlaceholder('Username')).toBeVisible();
-    await expect(page.getByPlaceholder('Password')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
-  });
-
-  test('verify login is blocked when username and password are empty', async ({ page }) => {
-    await page.getByRole('button', { name: 'Login' }).click();
-
-    await expect(page.locator('div.error-message-container.error:visible'))
-      .toContainText('Epic sadface: Username is required');
+  test('displays the login page', async ({ page }) => {
+    await expect(loginPage.usernameInput).toBeVisible();
+    await expect(loginPage.passwordInput).toBeVisible();
+    await expect(loginPage.loginButton).toBeVisible();
     await expect(page).toHaveURL(BASE_URL);
   });
 
-  test('verify login is blocked when standard username is entered without a password', async ({ page }) => {
-    await page.getByPlaceholder('Username').fill(STANDARD_USERNAME);
-    await page.getByRole('button', { name: 'Login' }).click();
+  test('blocks login when username and password are empty', async ({ page }) => {
+    await loginPage.submit();
 
-    await expect(page.locator('div.error-message-container.error:visible'))
-      .toContainText('Epic sadface: Password is required');
+    await expect(loginPage.errorMessage)
+      .toContainText(loginTestData.expectedErrors.usernameRequired);
     await expect(page).toHaveURL(BASE_URL);
   });
 
-  test('verify password characters are masked', async ({ page }) => {
-    const passwordField = page.getByPlaceholder('Password');
+  test('blocks login when password is empty', async ({ page }) => {
+    await loginPage.usernameInput.fill(loginTestData.standardUser.username);
+    await loginPage.submit();
 
-    await passwordField.fill(PASSWORD);
-
-    await expect(passwordField).toHaveAttribute('type', 'password');
+    await expect(loginPage.errorMessage)
+      .toContainText(loginTestData.expectedErrors.passwordRequired);
+    await expect(page).toHaveURL(BASE_URL);
   });
 
-  test('verify login with valid standard user credentials', async ({ page }) => {
-    await page.getByPlaceholder('Username').fill(STANDARD_USERNAME);
-    await page.getByPlaceholder('Password').fill(PASSWORD);
-    await page.getByRole('button', { name: 'Login' }).click();
+  test('masks password characters', async () => {
+    await loginPage.passwordInput.fill(loginTestData.standardUser.password);
 
+    await expect(loginPage.passwordInput).toHaveAttribute('type', 'password');
+  });
+
+  test('logs in with valid standard user credentials', async ({ page }) => {
+    await loginPage.login(
+      loginTestData.standardUser.username,
+      loginTestData.standardUser.password,
+    );
+
+    const inventoryPage = new InventoryPage(page);
     await expect(page).toHaveURL(/inventory\.html$/);
-    await expect(page.getByText('Products', { exact: true })).toBeVisible();
+    await expect(inventoryPage.productsHeading).toBeVisible();
   });
 
-  test('verify login with invalid username', async ({ page }) => {
-    await page.getByPlaceholder('Username').fill('invalid_user');
-    await page.getByPlaceholder('Password').fill(PASSWORD);
-    await page.getByRole('button', { name: 'Login' }).click();
+  test('rejects an invalid username', async ({ page }) => {
+    await loginPage.login(
+      loginTestData.invalidUser.username,
+      loginTestData.invalidUser.password,
+    );
 
-    await expect(page.locator('[data-test="error"]'))
-      .toContainText('Username and password do not match any user in this service');
+    await expect(loginPage.errorMessage)
+      .toContainText(loginTestData.expectedErrors.invalidCredentials);
     await expect(page).toHaveURL(BASE_URL);
   });
 
-  test('verify login with invalid password', async ({ page }) => {
-    await page.getByPlaceholder('Username').fill(STANDARD_USERNAME);
-    await page.getByPlaceholder('Password').fill('wrong_password');
-    await page.getByRole('button', { name: 'Login' }).click();
+  test('rejects an invalid password', async ({ page }) => {
+    await loginPage.login(
+      loginTestData.invalidPassword.username,
+      loginTestData.invalidPassword.password,
+    );
 
-    await expect(page.locator('[data-test="error"]'))
-      .toContainText('Username and password do not match any user in this service');
+    await expect(loginPage.errorMessage)
+      .toContainText(loginTestData.expectedErrors.invalidCredentials);
     await expect(page).toHaveURL(BASE_URL);
   });
 
-  test('verify error message can be dismissed', async ({ page }) => {
-    await page.getByRole('button', { name: 'Login' }).click();
+  test('allows the error message to be dismissed', async () => {
+    await loginPage.submit();
+    await expect(loginPage.errorMessage)
+      .toContainText(loginTestData.expectedErrors.usernameRequired);
 
-    const errorMessage = page.locator('[data-test="error"]');
-    await expect(errorMessage).toContainText('Username is required');
+    await loginPage.dismissError();
 
-    await page.locator('[data-test="error-button"]').click();
-
-    await expect(errorMessage).toBeHidden();
+    await expect(loginPage.errorMessage).toBeHidden();
   });
 
-  test('verify login form remains available after failed login', async ({ page }) => {
-    await page.getByPlaceholder('Username').fill('invalid_user');
-    await page.getByPlaceholder('Password').fill(PASSWORD);
-    await page.getByRole('button', { name: 'Login' }).click();
+  test('keeps the login form available after a failed login', async ({ page }) => {
+    await loginPage.login(
+      loginTestData.invalidUser.username,
+      loginTestData.invalidUser.password,
+    );
 
-    await expect(page.locator('[data-test="error"]')).toBeVisible();
-    await expect(page.getByPlaceholder('Username')).toBeVisible();
-    await expect(page.getByPlaceholder('Password')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
+    await expect(loginPage.errorMessage).toBeVisible();
+    await expect(loginPage.usernameInput).toBeVisible();
+    await expect(loginPage.passwordInput).toBeVisible();
+    await expect(loginPage.loginButton).toBeVisible();
     await expect(page).toHaveURL(BASE_URL);
   });
 });
