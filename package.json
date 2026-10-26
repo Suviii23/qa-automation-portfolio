@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {"test": "playwright test",
-  "test:report": "playwright show-report"},
+  "scripts": {
+    "test": "playwright test",
+    "test:report": "playwright show-report"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Suviii23/qa-automation-portfolio.git"
@@ -19,6 +21,7 @@
   "homepage": "https://github.com/Suviii23/qa-automation-portfolio#readme",
   "devDependencies": {
     "@playwright/test": "^1.64.1",
-    "@types/node": "^26.6.5"
+    "@types/node": "^26.6.5",
+    "playwright": "^1.64.1"
   }
 }
