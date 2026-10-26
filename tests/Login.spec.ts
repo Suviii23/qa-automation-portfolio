@@ -15,15 +15,6 @@ test.describe('SauceDemo Login Page - Standard User', () => {
     await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
   });
 
-  test('verify standard user can log in with valid credentials', async ({ page }) => {
-    await page.getByPlaceholder('Username').fill(STANDARD_USERNAME);
-    await page.getByPlaceholder('Password').fill(PASSWORD);
-    await page.getByRole('button', { name: 'Login' }).click();
-
-    await expect(page).toHaveURL(/inventory\.html$/);
-    await expect(page.getByText('Products', { exact: true })).toBeVisible();
-  });
-
   test('verify login is blocked when username and password are empty', async ({ page }) => {
     await page.getByRole('button', { name: 'Login' }).click();
 
@@ -47,5 +38,14 @@ test.describe('SauceDemo Login Page - Standard User', () => {
     await passwordField.fill(PASSWORD);
 
     await expect(passwordField).toHaveAttribute('type', 'password');
+  });
+
+    test('verify standard user can log in with valid credentials', async ({ page }) => {
+    await page.getByPlaceholder('Username').fill(STANDARD_USERNAME);
+    await page.getByPlaceholder('Password').fill(PASSWORD);
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await expect(page).toHaveURL(/inventory\.html$/);
+    await expect(page.getByText('Products', { exact: true })).toBeVisible();
   });
 });
