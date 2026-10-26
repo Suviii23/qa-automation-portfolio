@@ -10,7 +10,7 @@ test.describe('SauceDemo Login Page - Standard User', () => {
   });
 
   test('verify login page is displayed', async ({ page }) => {
-    await expect(page.getByPlaceholder('Username')).toBeVisible();
+    await expect(await page.getByPlaceholder('Username')).toBeVisible();
     await expect(page.getByPlaceholder('Password')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
   });
@@ -27,8 +27,8 @@ test.describe('SauceDemo Login Page - Standard User', () => {
   test('verify login is blocked when username and password are empty', async ({ page }) => {
     await page.getByRole('button', { name: 'Login' }).click();
 
-    await expect(page.getByTestId('error'))
-      .toContainText('Username is required');
+    await expect(page.locator('div.error-message-container.error:visible'))
+      .toContainText('Epic sadface: Username is required');
     await expect(page).toHaveURL(BASE_URL);
   });
 
@@ -36,8 +36,8 @@ test.describe('SauceDemo Login Page - Standard User', () => {
     await page.getByPlaceholder('Username').fill(STANDARD_USERNAME);
     await page.getByRole('button', { name: 'Login' }).click();
 
-    await expect(page.getByTestId('error'))
-      .toContainText('Password is required');
+    await expect(page.locator('div.error-message-container.error:visible'))
+      .toContainText('Epic sadface: Password is required');
     await expect(page).toHaveURL(BASE_URL);
   });
 
