@@ -1,13 +1,15 @@
 
-name: Playwright CI
+name: Playwright CI with Docker
 
 on:
   push:
     branches:
       - main
       - 'feature/**'
+      - 'practice/**'
   pull_request:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -15,34 +17,36 @@ permissions:
 
 jobs:
   test:
-    name: Run Playwright Tests
-    timeout-minutes: 60
+    name: Run Playwright Tests in Docker
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+      - name: Build Docker image
+        run: docker build -t qa-playwright-tests .
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Run UI and API tests in Docker
+        run: |
+          mkdir -p test-results playwright-report
+          docker run --name qa-playwright-run qa-playwright-tests
 
-      - name: Install Playwright browsers
-        run: npx playwright install chromium
+      - name: Copy test reports from container
+        if: ${{ always() }}
+        run: |
+          docker cp qa-playwright-run:/app/playwright-report/. playwright-report/ 2>/dev/null || true
+          docker cp qa-playwright-run:/app/test-results/. test-results/ 2>/dev/null || true
+          docker rm -f qa-playwright-run 2>/dev/null || true
 
-      - name: Run Playwright tests
-        run: npm test
-
-      - name: Upload Playwright report
-        if: ${{ !cancelled() }}
+      - name: Upload Playwright reports
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: playwright-docker-reports
+          path: |
+            playwright-report/
+            test-results/
           if-no-files-found: ignore
           retention-days: 7
